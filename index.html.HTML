@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LINE UID</title>
+  <script src="https://static.line-scdn.net/liff/2.22.2/sdk/liff.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; margin: 2rem; }
+  </style>
+</head>
+<body>
+  <h1>LINE UID 讀取</h1>
+  <p id="msg">初始化中...</p>
+  <p>用戶名稱: <span id="displayName"></span></p>
+  <p>UID: <span id="userId"></span></p>
+  <button id="copyBtn">複製 UID</button>
+  <br/><br/>
+  <button id="submitBtn">送出到 Google 表單</button>
+  <p id="submitMsg"></p>
+
+  <script>
+    const LIFFID = "2008144460-JvNYVA2M";
+    // 請將這兩個 entry 值替換為你的 Google 表單實際的 entry id
+    const GOOGLEFORMURL = "https://docs.google.com/forms/d/e/1FAIpQLSfDmtf690Aamw5l-FpgijCp3hJUJnQPiI20z4eDm1ZhniPT3A/formResponse";
+    const GOOGLEFORMENTRYIDNAME = "entry.123";
+    const GOOGLEFORMENTRYIDUID = "entry.456"; 
+
+    const msg = document.getElementById("msg");
+    const displayNameSpan = document.getElementById("displayName");
+    const userIdSpan = document.getElementById("userId");
+    const copyBtn = document.getElementById("copyBtn");
+    const submitBtn = document.getElementById("submitBtn");
+    const submitMsg = document.getElementById("submitMsg");
+
+    async function initialize() {
+      try {
+        await liff.init({ liffId: LIFFID });
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+        const profile = await liff.getProfile();
+        displayNameSpan.textContent = profile.displayName || "";
+        userIdSpan.textContent = profile.userId || "";
+        if (!profile.userId) {
+          msg.textContent = "無法取得 UID，請確認在 LINE App 內開啟。";
+        } else {
+          msg.textContent = "初始化成功！";
+        }
+      } catch (e) {
+        msg.textContent = "初始化失敗：" + e + "（請確認是否在 LINE App 內開啟）";
+      }
+    }
+
+    copyBtn.onclick = () => {
+      const uid = userIdSpan.textContent;
+      if(!uid) return alert("無UID可複製");
+      navigator.clipboard.writeText(uid).then(() => alert("UID已複製"));
+    };
+
+    submitBtn.onclick = async () => {
+      if(!userIdSpan.textContent || !displayNameSpan.textContent) {
+        return alert("尚未取得用戶資料");
+      }
+      const formData = new FormData();
+      formData.append(GOOGLEFORMENTRYIDNAME, displayNameSpan.textContent);
+      formData.append(GOOGLEFORMENTRYIDUID, userIdSpan.textContent);
+
+      submitMsg.textContent = "資料送出中...";
+      try {
+        await fetch(GOOGLEFORMURL, {
+          method: 'POST',
+          body: formData,
+          mode: 'no-cors'
+        });
+        submitMsg.textContent = "資料送出成功！";
+      } catch (e) {
+        submitMsg.textContent = "資料送出失敗：" + e;
+      }
+    };
+
+    document.addEventListener("DOMContentLoaded", initialize);
+  </script>
+</body>
+</html>
